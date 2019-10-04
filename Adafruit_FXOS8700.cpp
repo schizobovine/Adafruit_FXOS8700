@@ -50,8 +50,6 @@
 #define ACCEL_MG_LSB_8G (0.000976F)
 /** Macro for micro tesla (uT) per LSB (1 LSB = 0.1uT) */
 #define MAG_UT_LSB      (0.1F)
-/** Macro for micro tesla (uT) to Gauss (G) */
-#define GAUSS_PER_UT    (0.01F)
 
 /***************************************************************************
  PRIVATE FUNCTIONS
@@ -278,9 +276,9 @@ bool Adafruit_FXOS8700::updateRaw()
 /*!
     @brief  Get the x, y, and z accelerometer values.
 
-    @param x Location to store x value (in g)
-    @param y Location to store y value (in g)
-    @param z Location to store z value (in g)
+    @param x Location to store x value
+    @param y Location to store y value
+    @param z Location to store z value
 
 */
 
@@ -290,19 +288,19 @@ void Adafruit_FXOS8700::getAccelerometer(float *x, float *y, float *z)
   /* Convert accel values to m/s^2 */
   switch (_range) {
       case (ACCEL_RANGE_2G):
-          *x = accel_raw.x * ACCEL_MG_LSB_2G;
-          *y = accel_raw.y * ACCEL_MG_LSB_2G;
-          *z = accel_raw.z * ACCEL_MG_LSB_2G;
+          *x = accel_raw.x * ACCEL_MG_LSB_2G * SENSORS_GRAVITY_STANDARD;
+          *y = accel_raw.y * ACCEL_MG_LSB_2G * SENSORS_GRAVITY_STANDARD;
+          *z = accel_raw.z * ACCEL_MG_LSB_2G * SENSORS_GRAVITY_STANDARD;
       break;
       case (ACCEL_RANGE_4G):
-          *x = accel_raw.x * ACCEL_MG_LSB_4G;
-          *y = accel_raw.y * ACCEL_MG_LSB_4G;
-          *z = accel_raw.z * ACCEL_MG_LSB_4G;
+          *x = accel_raw.x * ACCEL_MG_LSB_4G * SENSORS_GRAVITY_STANDARD;
+          *y = accel_raw.y * ACCEL_MG_LSB_4G * SENSORS_GRAVITY_STANDARD;
+          *z = accel_raw.z * ACCEL_MG_LSB_4G * SENSORS_GRAVITY_STANDARD;
       break;
       case (ACCEL_RANGE_8G):
-          *x = accel_raw.x * ACCEL_MG_LSB_8G;
-          *y = accel_raw.y * ACCEL_MG_LSB_8G;
-          *z = accel_raw.z * ACCEL_MG_LSB_8G;
+          *x = accel_raw.x * ACCEL_MG_LSB_8G * SENSORS_GRAVITY_STANDARD;
+          *y = accel_raw.y * ACCEL_MG_LSB_8G * SENSORS_GRAVITY_STANDARD;
+          *z = accel_raw.z * ACCEL_MG_LSB_8G * SENSORS_GRAVITY_STANDARD;
       break;
   }
 }
@@ -321,9 +319,9 @@ void Adafruit_FXOS8700::getMagnetometer (float *x, float *y, float *z)
 {
 
   /* Convert mag values to uTesla */
-  *x = mag_raw.x * MAG_UT_LSB * GAUSS_PER_UT;
-  *y = mag_raw.y * MAG_UT_LSB * GAUSS_PER_UT;
-  *z = mag_raw.z * MAG_UT_LSB * GAUSS_PER_UT;
+  *x = mag_raw.x * MAG_UT_LSB;
+  *y = mag_raw.y * MAG_UT_LSB;
+  *z = mag_raw.z * MAG_UT_LSB;
 
 }
 
