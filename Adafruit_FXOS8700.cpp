@@ -50,6 +50,8 @@
 #define ACCEL_MG_LSB_8G (0.000976F)
 /** Macro for micro tesla (uT) per LSB (1 LSB = 0.1uT) */
 #define MAG_UT_LSB      (0.1F)
+/** Macro for micro tesla (uT) to Gauss (G) */
+#define GAUSS_PER_UT    (0.01F)
 
 /***************************************************************************
  PRIVATE FUNCTIONS
@@ -187,6 +189,142 @@ bool Adafruit_FXOS8700::begin(fxos8700AccelRange_t rng)
   write8(FXOS8700_REGISTER_MCTRL_REG2, 0x20);
 
   return true;
+}
+
+/**************************************************************************/
+/*!
+    @brief  Updates raw data structs with data.
+
+            This function reads from both the accelerometer and the
+            magnetometer in one call, and is a deviation from the standard
+            Adafruit_Sensor API, but is provided as a convenience since most
+            AHRS algorithms require sensor samples to be as close in time as
+            possible.
+
+    @param    accelEvent
+              A reference to the sensors_event_t instances where the
+              accelerometer data should be written.
+    @param    magEvent
+              A reference to the sensors_event_t instances where the
+              magnetometer data should be written.
+
+    @return True if the event read was successful, otherwise false.
+*/
+/**************************************************************************/
+bool Adafruit_FXOS8700::updateRaw()
+{
+
+  /* Clear the raw data placeholder */
+  accel_raw.x = 0;
+  accel_raw.y = 0;
+  accel_raw.z = 0;
+  mag_raw.x = 0;
+  mag_raw.y = 0;
+  mag_raw.z = 0;
+
+  /* Read 13 bytes from the sensor */
+  Wire.beginTransmission((byte)FXOS8700_ADDRESS);
+  #if ARDUINO >= 100
+    Wire.write(FXOS8700_REGISTER_STATUS | 0x80);
+  #else
+    Wire.send(FXOS8700_REGISTER_STATUS | 0x80);
+  #endif
+  Wire.endTransmission();
+  Wire.requestFrom((byte)FXOS8700_ADDRESS, (byte)13);
+
+  /* ToDo: Check status first! */
+  #if ARDUINO >= 100
+    uint8_t status = Wire.read();
+    uint8_t axhi = Wire.read();
+    uint8_t axlo = Wire.read();
+    uint8_t ayhi = Wire.read();
+    uint8_t aylo = Wire.read();
+    uint8_t azhi = Wire.read();
+    uint8_t azlo = Wire.read();
+    uint8_t mxhi = Wire.read();
+    uint8_t mxlo = Wire.read();
+    uint8_t myhi = Wire.read();
+    uint8_t mylo = Wire.read();
+    uint8_t mzhi = Wire.read();
+    uint8_t mzlo = Wire.read();
+  #else
+    uint8_t status = Wire.receive();
+    uint8_t axhi = Wire.receive();
+    uint8_t axlo = Wire.receive();
+    uint8_t ayhi = Wire.receive();
+    uint8_t aylo = Wire.receive();
+    uint8_t azhi = Wire.receive();
+    uint8_t azlo = Wire.receive();
+    uint8_t mxhi = Wire.receive();
+    uint8_t mxlo = Wire.receive();
+    uint8_t myhi = Wire.receive();
+    uint8_t mylo = Wire.receive();
+    uint8_t mzhi = Wire.receive();
+    uint8_t mzlo = Wire.receive();
+  #endif
+
+  /* Shift values to create properly formed integers */
+  /* Note, accel data is 14-bit and left-aligned, so we shift two bit right */
+  accel_raw.x = (int16_t)((axhi << 8) | axlo) >> 2;
+  accel_raw.y = (int16_t)((ayhi << 8) | aylo) >> 2;
+  accel_raw.z = (int16_t)((azhi << 8) | azlo) >> 2;
+  mag_raw.x = (int16_t)((mxhi << 8) | mxlo);
+  mag_raw.y = (int16_t)((myhi << 8) | mylo);
+  mag_raw.z = (int16_t)((mzhi << 8) | mzlo);
+
+}
+
+/**************************************************************************/
+/*!
+    @brief  Get the x, y, and z accelerometer values.
+
+    @param x Location to store x value (in g)
+    @param y Location to store y value (in g)
+    @param z Location to store z value (in g)
+
+*/
+
+void Adafruit_FXOS8700::getAccelerometer(float *x, float *y, float *z)
+{
+
+  /* Convert accel values to m/s^2 */
+  switch (_range) {
+      case (ACCEL_RANGE_2G):
+          *x = accel_raw.x * ACCEL_MG_LSB_2G;
+          *y = accel_raw.y * ACCEL_MG_LSB_2G;
+          *z = accel_raw.z * ACCEL_MG_LSB_2G;
+      break;
+      case (ACCEL_RANGE_4G):
+          *x = accel_raw.x * ACCEL_MG_LSB_4G;
+          *y = accel_raw.y * ACCEL_MG_LSB_4G;
+          *z = accel_raw.z * ACCEL_MG_LSB_4G;
+      break;
+      case (ACCEL_RANGE_8G):
+          *x = accel_raw.x * ACCEL_MG_LSB_8G;
+          *y = accel_raw.y * ACCEL_MG_LSB_8G;
+          *z = accel_raw.z * ACCEL_MG_LSB_8G;
+      break;
+  }
+}
+
+
+/**************************************************************************/
+/*!
+    @brief  Get the x, y, and z magnetometer values.
+
+    @param x Location to store x value
+    @param y Location to store y value
+    @param z Location to store z value
+
+*/
+void Adafruit_FXOS8700::getMagnetometer (float *x, float *y, float *z)
+{
+
+  /* Convert mag values to uTesla */
+  *x = mag_raw.x * MAG_UT_LSB * GAUSS_PER_UT;
+  *y = mag_raw.y * MAG_UT_LSB * GAUSS_PER_UT;
+  *z = mag_raw.z * MAG_UT_LSB * GAUSS_PER_UT;
+
 }
 
 /**************************************************************************/
